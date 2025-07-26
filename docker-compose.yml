@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  semantic-api:
+    build: .
+    container_name: semantic-gpt-semantic-api-1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+      - ./data:/app/data
+      - ./wheelhouse:/wheelhouse
+      - ./models_cache:/root/.cache/torch
+    depends_on:
+      - qdrant
+
+  qdrant:
+    image: qdrant/qdrant
+    container_name: semantic-gpt-qdrant-1
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+volumes:
+  qdrant_data:
