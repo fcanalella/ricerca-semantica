@@ -18,3 +18,5 @@
 Dockerfile.dev
 *.swp
 *.swo
+requirements.txt.bak
+test/
