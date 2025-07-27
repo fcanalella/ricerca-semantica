@@ -8,3 +8,4 @@ model = SentenceTransformer(EMBEDDING_MODEL)
 
 def embed_text(text: str):
     return model.encode([text], convert_to_numpy=True)[0]
+model_name = "paraphrase-multilingual-MiniLM-L12-v2"
