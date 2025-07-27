@@ -1,0 +1,20 @@
+# Cartelle da ignorare
+/wheelhouse/
+/backend/data/
+/backend/models_cache/
+/__pycache__/
+
+# File da ignorare
+*.pyc
+*.pyo
+*.pyd
+.env
+.DS_Store
+.idea/
+.vscode/
+
+# File generati da Docker/Virtualenv
+.dockerignore
+Dockerfile.dev
+*.swp
+*.swo
