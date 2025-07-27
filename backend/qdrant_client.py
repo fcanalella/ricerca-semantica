@@ -1,29 +1,63 @@
-# backend/qdrant_client.py
+import os
 from qdrant_client import QdrantClient
-from backend.settings import QDRANT_HOST, QDRANT_PORT, COLLECTION_NAME
+from typing import Optional, List, Dict, Any
+import logging
+from pydantic import BaseSettings
 
-qdrant = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+class QdrantConfig(BaseSettings):
+    host: str = os.getenv("QDRANT_HOST", "localhost")
+    port: int = os.getenv("QDRANT_PORT", 6333)
 
-def ensure_collection():
-    if COLLECTION_NAME not in [c.name for c in qdrant.get_collections().collections]:
-        qdrant.create_collection(
-            collection_name=COLLECTION_NAME,
-            vectors_config={"size": 768, "distance": "Cosine"}  # 768 per mpnet
+class QdrantClientWrapper:
+    """
+    Wrapper per il client Qdrant con gestione errori e logging.
+    Configurazione tramite variabili d'ambiente:
+    - QDRANT_HOST: indirizzo del server (default: localhost)
+    - QDRANT_PORT: porta del server (default: 6333)
+    """
+    def __init__(self):
+        config = QdrantConfig()
+        self.client = QdrantClient(
+            host=config.host, 
+            port=config.port
         )
+        self.logger = logging.getLogger(__name__)
+        
+    def upsert_document(self, 
+                      collection: str, 
+                      points: List[dict]) -> bool:
+        """
+        Inserisce documenti in Qdrant.
+        Restituisce True se successo, False altrimenti.
+        Logga gli errori senza sollevare eccezioni.
+        """
+        try:
+            self.client.upsert(
+                collection_name=collection,
+                points=points
+            )
+            self.logger.info(f"Upsert successful in collection '{collection}'")
+            return True
+        except Exception as e:
+            self.logger.error(f"Upsert failed in collection '{collection}': {str(e)}")
+            return False
 
-def upsert_document(doc_id: str, vector, payload: dict):
-    qdrant.upsert(
-        collection_name=COLLECTION_NAME,
-        points=[{
-            "id": doc_id,
-            "vector": vector,
-            "payload": payload
-        }]
-    )
-
-def search(query_vector, top_k: int = 5):
-    return qdrant.search(
-        collection_name=COLLECTION_NAME,
-        query_vector=query_vector,
-        limit=top_k
-    )
+    def search(self, 
+              collection: str, 
+              query_vector: List[float], 
+              limit: Optional[int] = 10) -> List[Dict[str, Any]]:
+        """
+        Esegue ricerche semantiche in Qdrant.
+        Solleva eccezioni per gestione esterna.
+        """
+        try:
+            results = self.client.search(
+                collection_name=collection,
+                query_vector=query_vector,
+                limit=limit
+            )
+            self.logger.debug(f"Search found {len(results)} results")
+            return results
+        except Exception as e:
+            self.logger.error(f"Search failed in collection '{collection}': {str(e)}")
+            raise ValueError(f"Search error: {str(e)}") from e
